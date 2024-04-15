@@ -1,92 +1,192 @@
 ﻿using System;
-using System.Net;
-using System.Reflection;
+using System.Diagnostics;
+using System.IO;
+using System.Net.Http;
+using System.Threading.Tasks;
 
-class Program
+namespace WindowsOptimizer
 {
-    static string versionUrl = "https://yourwebsite.com/version.txt";
-    static string updateUrl = "https://yourwebsite.com/updatedprogram.exe";
-
-    static void Main(string[] args)
+    class Program
     {
-        Console.Title = "Cybersecurity Control Panel";
-        Console.ForegroundColor = ConsoleColor.Green;
-
-        Console.WriteLine("Welcome to the Cybersecurity Control Panel");
-        Console.WriteLine("------------------------------------------\n");
-
-        // Check for updates
-        CheckForUpdates();
-
-        Console.WriteLine("Choose an option:");
-        Console.WriteLine("1. Scan network for active devices");
-        Console.WriteLine("2. Generate Strong Password");
-        Console.WriteLine("3. Check for Open Ports\n");
-
-        Console.Write("Enter your choice (1-3): ");
-
-        int choice;
-        if (int.TryParse(Console.ReadLine(), out choice))
+        static async Task Main(string[] args)
         {
-            switch (choice)
-            {
-                case 1:
-                    // Functionality for scanning network
-                    break;
-                case 2:
-                    // Functionality for generating strong password
-                    break;
-                case 3:
-                    // Functionality for checking open ports
-                    break;
-                default:
-                    Console.WriteLine("Invalid choice. Exiting.");
-                    break;
-            }
-        }
-        else
-        {
-            Console.WriteLine("Invalid input. Exiting.");
+            int bitness = IntPtr.Size * 8;
+            Console.Title = $"HellControl | Release x{bitness}";
+            Console.ForegroundColor = ConsoleColor.Magenta;
+            Console.WriteLine("[*] Welcome to HellControl!\n\n[*] This program optimizes the performance of your computer and a control panel for everything!.\n");
+
+            await CheckForUpdatesAsync();
+
+            await OptimizeMemoryAsync();
+            await CleanCacheAsync();
+            await CleanTempFilesAsync();
+            await CleanRegistryAsync();
+            await CleanCrashDumpsAsync();
+            await ClearDNSCacheAsync();
+
+            Console.ForegroundColor = ConsoleColor.DarkYellow;
+            Console.WriteLine("\n[*] Optimization is complete.");
+            Console.ResetColor();
+            Console.WriteLine("[*] Press Enter to exit.");
+            Console.ReadLine();
         }
 
-        Console.ResetColor();
-        Console.WriteLine("\nPress any key to exit...");
-        Console.ReadKey();
-    }
-
-    static void CheckForUpdates()
-    {
-        try
+        static async Task CheckForUpdatesAsync()
         {
-            using (WebClient client = new WebClient())
+            string version = "1.0.0.5";
+            using var client = new HttpClient();
+            try
             {
-                string remoteVersion = client.DownloadString(versionUrl);
-                Version currentVersion = Assembly.GetExecutingAssembly().GetName().Version;
-                Version latestVersion = new Version(remoteVersion);
-
-                if (latestVersion > currentVersion)
+                string latestVersion = await client.GetStringAsync("https://raw.githubusercontent.com/Zinedinarnaut/HellControl/master/license_version.txt");
+                if (latestVersion.Trim() != version)
                 {
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.WriteLine("A new version is available. Would you like to update? (Y/N)");
-
-                    if (Console.ReadLine().Trim().ToUpper() == "Y")
-                    {
-                        // Update the program
-                        Console.WriteLine("Updating program...");
-                        client.DownloadFile(updateUrl, "updatedprogram.exe");
-                        Console.WriteLine("Program updated successfully. Please restart.");
-                        Environment.Exit(0);
-                    }
+                    Console.ForegroundColor = ConsoleColor.DarkYellow;
+                    Console.WriteLine($"[*] New version available: {latestVersion} | Please update for the latest fixes and features.\n");
+                    Console.ResetColor();
                 }
                 else
                 {
-                    Console.WriteLine("You have the latest version.");
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("[*] You have the latest version installed.\n");
+                    Console.ResetColor();
                 }
             }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkRed;
+                Console.WriteLine("[!] Error checking for updates: " + ex.Message + "\n");
+                Console.ResetColor();
+            }
         }
-        catch (Exception ex)
+
+        static async Task OptimizeMemoryAsync()
         {
-            Console.WriteLine($"Error checking for updates: {ex.Message}");
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("[+] Memory optimization is complete.");
+        }
+
+        static async Task CleanCacheAsync()
+        {
+            ProcessStartInfo startInfo = new ProcessStartInfo
+            {
+                FileName = "cleanmgr.exe",
+                Arguments = "/autoclean",
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using (Process process = Process.Start(startInfo))
+            {
+                process.WaitForExit();
+            }
+
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("[+] Cache cleanup is complete.");
+        }
+
+        static async Task CleanTempFilesAsync()
+        {
+            string tempFolderPath = Path.GetTempPath();
+            DirectoryInfo tempDir = new DirectoryInfo(tempFolderPath);
+
+            var tasks = new List<Task>();
+
+            foreach (FileInfo file in tempDir.GetFiles())
+            {
+                tasks.Add(Task.Run(() =>
+                {
+                    try
+                    {
+                        file.Delete();
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }));
+            }
+
+            foreach (DirectoryInfo subDir in tempDir.GetDirectories())
+            {
+                tasks.Add(Task.Run(() =>
+                {
+                    try
+                    {
+                        subDir.Delete(true);
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }));
+            }
+
+            await Task.WhenAll(tasks);
+
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("[+] Cleaning of temporary files is completed.");
+        }
+
+
+        static async Task CleanRegistryAsync()
+        {
+            try
+            {
+                Process.Start("regedit.exe", "/s cleanup.reg");
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("[+] Registry cleanup is complete.");
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkRed;
+                Console.WriteLine("[!] Error when clearing the registry: " + ex.Message);
+            }
+        }
+
+        static async Task CleanCrashDumpsAsync()
+        {
+            string localCrashDumpsPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            string crashDumpsFolder = Path.Combine(localCrashDumpsPath, "CrashDumps");
+
+            if (Directory.Exists(crashDumpsFolder))
+            {
+                Directory.Delete(crashDumpsFolder, true);
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("[+] Clearing the CrashDumps folder is complete.");
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine("[?] CrashDumps folder not found.");
+            }
+        }
+
+        static async Task ClearDNSCacheAsync()
+        {
+            try
+            {
+                Process process = new Process();
+                process.StartInfo.FileName = "ipconfig";
+                process.StartInfo.Arguments = "/flushdns";
+                process.StartInfo.RedirectStandardOutput = true;
+                process.StartInfo.RedirectStandardError = true;
+                process.StartInfo.UseShellExecute = false;
+                process.StartInfo.CreateNoWindow = true;
+
+                process.Start();
+
+                await process.StandardOutput.ReadToEndAsync();
+                await process.StandardError.ReadToEndAsync();
+
+                process.WaitForExit();
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("[+] DNS cache cleanup is complete.");
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkRed;
+                Console.WriteLine("Error clearing DNS cache: " + ex.Message);
+            }
         }
     }
 }
